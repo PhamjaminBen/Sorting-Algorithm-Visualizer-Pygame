@@ -32,7 +32,7 @@ def draw(draw_info: DrawInformation, algo_name: str, ascending: bool):
   controls_text = draw_info.FONT.render("R- Reset | SPACE - Start Sorting | A - Ascending | D - Descending", 1, draw_info.BLACK)
   draw_info.window.blit(controls_text, (draw_info.width/2 - controls_text.get_width()/2, 45))
 
-  sorting_text = draw_info.FONT.render("I - Insertion Sort | B - Bubble Sort | S - Selection Sort", 1, draw_info.BLACK)
+  sorting_text = draw_info.FONT.render("I - Insertion Sort | B - Bubble Sort | S - Selection Sort | Q - Quick Sort", 1, draw_info.BLACK)
   draw_info.window.blit(sorting_text, (draw_info.width/2 - sorting_text.get_width()/2, 75))
 
   stats_text = draw_info.FONT.render(f"Iterations: {draw_info.iterations}", 1, draw_info.BLACK)
@@ -109,46 +109,69 @@ def insertion_sort(draw_info: DrawInformation, ascending = True):
 
   return lst
 
-def quick_sort(draw_info: DrawInformation, ascending = True, low = None, high = None):
-  lst = draw_info.lst
-  if low == None:
-    low = 0
-    high = len(lst)-1
-  
-  if(low < high):
-    p = partition(low,high,draw_info)
-    quick_sort(draw_info, ascending, low, p-1)
-    quick_sort(draw_info, ascending, p+1,high)
-  
-  
 
-
-def partition(low,high, draw_info: DrawInformation):
-  '''
-  Helper function for quicksort algorithm
-  Takes the last element as a pivot, and puts all elements smaller to the left and elements larger to the right
-  Does this in the range [low, high]
-  '''
-  arr = draw_info.lst
-  pivot_idx = low
-  pivot = arr[pivot_idx]
-
-
-  while low < high:
-    while low < len(arr) and arr[low] <= pivot:
-      low += 1
-      draw_info.iterations += 1
-      draw_list(draw_info, {low: draw_info.RED}, True)
-    while arr[high] > pivot:
-      draw_info.iterations += 1
-      high -= 1
-      draw_list(draw_info, {high: draw_info.RED}, True)
-    
-    if low < high:
-      arr[low],arr[high] = arr[high], arr[low]
-      draw_list(draw_info, {high: draw_info.GREEN, low: draw_info.GREEN})
+def quick_sort(draw_info: DrawInformation, ascending = True, l = None, h = None):
+   # Create an auxiliary stack
+    h = len(draw_info.lst)-1
+    l = 0
+    size = h - l + 1
+    stack = [0] * (size)
+ 
+    # initialize top of stack
+    top = -1
+ 
+    # push initial values of l and h to stack
+    top = top + 1
+    stack[top] = l
+    top = top + 1
+    stack[top] = h
+ 
+    # Keep popping from stack while is not empty
+    while top >= 0:
+ 
+        # Pop h and l
+        h = stack[top]
+        top = top - 1
+        l = stack[top]
+        top = top - 1
+ 
+        # Set pivot element at its correct position in
+        # sorted array
+        p = partition(l, h,draw_info, ascending )
+        yield True
+ 
+        # If there are elements on left side of pivot,
+        # then push left side to stack
+        if p-1 > l:
+            top = top + 1
+            stack[top] = l
+            top = top + 1
+            stack[top] = p - 1
+ 
+        # If there are elements on right side of pivot,
+        # then push right side to stack
+        if p + 1 < h:
+            top = top + 1
+            stack[top] = p + 1
+            top = top + 1
+            stack[top] = h
   
-  return high
+def partition(l, h, draw_info :DrawInformation, ascending = True):
+    arr = draw_info.lst
+    i = ( l - 1 )
+    x = arr[h]
+ 
+    for j in range(l, h):
+        if   (arr[j] <= x and ascending) or (arr[j] >= x and not ascending):
+ 
+            # increment index of smaller element
+            i = i + 1
+            arr[i], arr[j] = arr[j], arr[i]
+            draw_info.iterations += 1
+            draw_list(draw_info, {i: draw_info.GREEN, j: draw_info.RED}, True)
+ 
+    arr[i + 1], arr[h] = arr[h], arr[i + 1]
+    return (i + 1)
 
 
 
