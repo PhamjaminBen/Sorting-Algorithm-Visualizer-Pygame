@@ -1,58 +1,10 @@
 import pygame
 import random
 import math
+
+from pygame.key import start_text_input
 pygame.init()
-
-class DrawInformation:
-  '''
-  Class to be initialized at the beginning of the program
-  Passes values to itself such as width, height, unsorted list, etc.
-  Passed to all the different functions
-  '''
-
-  #Colors in RGB Representation
-  BLACK = 0,0,0
-  WHITE = 255,255,255
-  GREEN = 0,255,0
-  RED = 255,0,0
-  GREY = 128,128,128
-  BACKGROUND_COLOR = WHITE
-
-  GRADIENTS = [ #gradients used for the bars in the list
-    (128,128,128),
-    (160,160,160),
-    (192,192,192)
-  ]
-
-  FONT = pygame.font.SysFont('comicsans', 20)
-  LARGE_FONT = pygame.font.SysFont('comicsans',30)
-
-  SIDE_PAD = 100 #padding from the left and right, in pixels
-  TOP_PAD = 150 #padding from the top, in pixels
-
-  def __init__(self, width: int, height: int, lst: list):
-    self.width = width
-    self.height = height
-
-    #create the window in pygame using width and height
-    self.window = pygame.display.set_mode((width,height))
-    pygame.display.set_caption("Sorting Algorithm Visualizer")
-
-    self.set_list(lst)
-
-  def set_list(self, lst: list):
-    '''
-    Sets attributes that are related to the list, so that they scale properly with the window size
-    '''
-    self.lst = lst
-    self.min_val = min(lst)
-    self.max_val = max(lst)
-
-    #calculates width and height of each bar
-    self.bar_width = round((self.width - self.SIDE_PAD) / len(lst))
-    self.bar_height = math.floor((self.height - self.TOP_PAD) / (self.max_val - self.min_val)) #Increment of height per value
-
-    self.start_x = self.SIDE_PAD // 2 #start drawing after the padding
+from DrawInformation import DrawInformation
 
 
 def generate_starting_list(n: int ,min_val: int, max_val: int) -> list:
@@ -80,8 +32,11 @@ def draw(draw_info: DrawInformation, algo_name: str, ascending: bool):
   controls_text = draw_info.FONT.render("R- Reset | SPACE - Start Sorting | A - Ascending | D - Descending", 1, draw_info.BLACK)
   draw_info.window.blit(controls_text, (draw_info.width/2 - controls_text.get_width()/2, 45))
 
-  sorting_text = draw_info.FONT.render("I - Insertion Sort | B - Bubble sort", 1, draw_info.BLACK)
+  sorting_text = draw_info.FONT.render("I - Insertion Sort | B - Bubble Sort | S - Selection Sort", 1, draw_info.BLACK)
   draw_info.window.blit(sorting_text, (draw_info.width/2 - sorting_text.get_width()/2, 75))
+
+  stats_text = draw_info.FONT.render(f"Iterations: {draw_info.iterations}", 1, draw_info.BLACK)
+  draw_info.window.blit(stats_text, (10,10))
 
   draw_list(draw_info)
   pygame.display.update()
@@ -123,6 +78,7 @@ def bubble_sort(draw_info: DrawInformation, ascending = True):
 
   for i in range(len(lst)-1):
     for j in range(len(lst)-1-i):
+      draw_info.iterations += 1
       num1 = lst[j]
       num2 = lst[j+1]
 
@@ -132,6 +88,94 @@ def bubble_sort(draw_info: DrawInformation, ascending = True):
         yield True
   
   return lst
+
+def insertion_sort(draw_info: DrawInformation, ascending = True):
+  '''
+  Algorithm for insertion sort visualization
+  '''
+  lst = draw_info.lst
+  for i in range(1,len(lst)):
+    key = lst[i]
+    j = i-1
+
+    while j >= 0 and ((key < lst[j] and ascending) or (key > lst[j] and not ascending)):
+      draw_info.iterations += 1
+      lst[j+1] = lst[j]
+      j -= 1
+    
+    lst[j+1] = key
+    draw_list(draw_info, {j: draw_info.RED, i: draw_info.GREEN}, True)
+    yield True
+
+  return lst
+
+def quick_sort(draw_info: DrawInformation, ascending = True, low = None, high = None):
+  lst = draw_info.lst
+  if low == None:
+    low = 0
+    high = len(lst)-1
+  
+  if(low < high):
+    p = partition(low,high,draw_info)
+    quick_sort(draw_info, ascending, low, p-1)
+    quick_sort(draw_info, ascending, p+1,high)
+  
+  
+
+
+def partition(low,high, draw_info: DrawInformation):
+  '''
+  Helper function for quicksort algorithm
+  Takes the last element as a pivot, and puts all elements smaller to the left and elements larger to the right
+  Does this in the range [low, high]
+  '''
+  arr = draw_info.lst
+  pivot_idx = low
+  pivot = arr[pivot_idx]
+
+
+  while low < high:
+    while low < len(arr) and arr[low] <= pivot:
+      low += 1
+      draw_info.iterations += 1
+      draw_list(draw_info, {low: draw_info.RED}, True)
+    while arr[high] > pivot:
+      draw_info.iterations += 1
+      high -= 1
+      draw_list(draw_info, {high: draw_info.RED}, True)
+    
+    if low < high:
+      arr[low],arr[high] = arr[high], arr[low]
+      draw_list(draw_info, {high: draw_info.GREEN, low: draw_info.GREEN})
+  
+  return high
+
+
+
+def selection_sort(draw_info: DrawInformation, ascending = True):
+  '''
+  Algorithm for selection sort visualization
+  '''
+  lst = draw_info.lst
+
+  for i in range(len(lst)):
+    extreme_pos = i
+
+    for j in range(i+1,len(lst)):
+      draw_info.iterations += 1
+      if (lst[j] < lst[extreme_pos] and ascending) or (lst[j] > lst[extreme_pos] and not ascending):
+        extreme_pos = j
+      draw_list(draw_info, {j: draw_info.RED}, True)
+    
+    if extreme_pos != i:
+      lst[i], lst[extreme_pos] = lst[extreme_pos], lst[i]
+      draw_list(draw_info, {i: draw_info.GREEN, extreme_pos: draw_info.RED}, True)
+
+    yield True
+  
+  return lst
+
+
 
 
 def main():
@@ -157,8 +201,8 @@ def main():
   draw(draw_info, sorting_algo_name, ascending)
   
   #main loop constantly running
+  clock.tick(100) #maximum # of times per second loop runs
   while run:
-    clock.tick(60) #maximum # of times per second loop runs
 
     #attempts to get the next iteration of the sorting algorithm, if error caught, then sorting is over
     if sorting:
@@ -183,6 +227,7 @@ def main():
         draw(draw_info, sorting_algo_name, ascending)
       
       elif event.key == pygame.K_SPACE and sorting == False:
+        draw_info.iterations = 0
         sorting = True
         sorting_algorithm_generator = sorting_algorithm(draw_info, ascending)
       
@@ -192,6 +237,33 @@ def main():
       
       elif event.key == pygame.K_d and not sorting:
         ascending = False
+        draw(draw_info, sorting_algo_name, ascending)
+      
+      elif event.key == pygame.K_i and not sorting:
+        sorting_algorithm = insertion_sort
+        sorting_algo_name = "Insertion Sort"
+        sorting_algorithm_generator = None
+        # clock.tick(5)
+        draw(draw_info, sorting_algo_name, ascending)
+      
+      elif event.key == pygame.K_b and not sorting:
+        sorting_algorithm = bubble_sort
+        sorting_algo_name = "Bubble Sort"
+        sorting_algorithm_generator = None
+        # clock.tick(5)
+        draw(draw_info, sorting_algo_name, ascending) 
+
+      elif event.key == pygame.K_s and not sorting:
+        sorting_algorithm = selection_sort
+        sorting_algo_name = "Selection Sort"     
+        sorting_algorithm_generator = None
+        # clock.tick(5)
+        draw(draw_info, sorting_algo_name, ascending)
+      
+      elif event.key == pygame.K_q and not sorting:
+        sorting_algorithm = quick_sort
+        sorting_algo_name = "Quick Sort"
+        sorting_algorithm_generator = None
         draw(draw_info, sorting_algo_name, ascending)
 
   
